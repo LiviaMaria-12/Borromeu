@@ -7,6 +7,24 @@ import { autenticarToken } from "../middlewares/autenticacao.js";
 const SECRET_KEY = 'sua_chave_secreta';
 const router = Router();
 
+// Função para garantir que nenhum campo obrigatório foi omitido ou enviado vazio - POST PUT
+function validarCamposObrigatorios(corpoRequisicao, camposEsperados) {
+    for (const campo of camposEsperados) {
+        const valor = corpoRequisicao[campo];
+
+        // 1. Verifica se o campo foi omitido (undefined) ou é nulo (null)
+        if (valor === undefined || valor === null) {
+            return false;
+        }
+
+        // 2. Se for uma string, remove os espaços e checa se ficou vazia
+        if (typeof valor === 'string' && valor.trim() === '') {
+            return false;
+        }
+    }
+    return true; // Todos os campos estão presentes e preenchidos
+}
+
 // GET
 router.get('/usuarios', autenticarToken, async(req, res) =>{
     try{
@@ -24,39 +42,74 @@ router.get('/usuarios', autenticarToken, async(req, res) =>{
 });
 
 // POST
-router.post('/usuarios', autenticarToken, async(req, res) => {
-    const {nome, email, senha } = req.body;
-    try{
-        //definir a força da criptografia
+router.post('/usuarios', autenticarToken, async (req, res) => {
+    // Validação estrita
+    const camposObrigatorios = ['nome', 'email', 'senha', 'ativo'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao cadastrar: todos os dados necessários devem ser preenchidos.' });
+    }
+    const { nome, email, senha, ativo } = req.body;
+
+    if (typeof ativo !== "boolean") {
+        return res.status(400).json({ erro: "O campo 'ativo' deve ser true ou false." });
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+        return res.status(400).json({ erro: "E-mail inválido! Falta o @ ou o domínio." });
+    }
+
+
+    try {
         const saltRounds = 10;
-        // gerando a hash da senha
+        // 1. Cria a variável com o nome correto
         const senhaCriptografada = await bcrypt.hash(senha, saltRounds);
 
-        const comando = `INSERT INTO USUARIOS(nome, email, senha) VALUES($1, $2, $3)`
-        const valores = [nome, email, senhaCriptografada];
-
-        await BD.query(comando, valores)
-        console.log(comando,valores);
-
-       return res.status(201).json("Usuário cadastrado com sucesso!");
-    }catch(error){
+        // 2. Prepara o comando SQL com 4 parâmetros ($1 a $4)
+        const comando = `INSERT INTO USUARIOS(nome, email, senha, ativo) VALUES($1, $2, $3, $4)`;
         
-        console.error('Erro ao cadastrar usuários', error.message);
+        // 3. Passa as variáveis na ordem exata das colunas
+        const valores = [nome, email, senhaCriptografada, ativo];
+
+        await BD.query(comando, valores);
+        console.log(comando, valores);
+
+        return res.status(201).json("Usuário cadastrado com sucesso!");
+    } catch (error) {
+        console.error('Erro ao cadastrar usuários:', error.message);
+        
         if (error.code === '23505') {
             return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
         }
-        return  res.status(500).json({error: 'Erro ao cadastrar usuarios. Verifique se todos os campos estão preenchidos corretamente.' 
-            + error.message})
+        
+        return res.status(500).json({
+            error: 'Erro ao cadastrar usuarios. Verifique se todos os campos estão preenchidos corretamente. ' + error.message
+        });
     }
-})
+});
+
 
 // PUT
 router.put('/usuarios/:id_usuario', autenticarToken, async(req, res) =>{
+
+    // Validação estrita: impede salvar se algum campo foi excluído do envio ou deixado em branco
+    const camposObrigatorios = ['nome', 'email', 'senha', 'ativo'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao atualizar: todos os dados necessários devem ser preenchidos.' });
+    }
     // Id recebido via parametro
     const {id_usuario} = req.params;
 
     // Dados do usuario recebido via Corpo da página
-    const {nome, email, senha} = req.body;
+    const {nome, email, senha, ativo} = req.body;
+
+    if (typeof ativo !== "boolean") {
+        return res.status(400).json({ erro: "O campo 'ativo' deve ser true ou false." });
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+        return res.status(400).json({ erro: "E-mail inválido! Falta o @ ou o domínio." });
+    }
+
     try{
         //Verificar se o usuario existe
         const verificarUsuario = await BD.query(`SELECT * FROM USUARIOS
@@ -71,12 +124,15 @@ router.put('/usuarios/:id_usuario', autenticarToken, async(req, res) =>{
 
         // Atualiza todos os campos da tabela(PUT Substituição completa)
         const comando = `UPDATE USUARIOS SET nome = $1, email = $2, senha =$3 WHERE
-        id_usuario = $4`;
-        const valores = [nome, email, senhaCriptografada, id_usuario];
+        id_usuario = $4 and ativo = $5`;
+        const valores = [nome, email, senhaCriptografada, id_usuario, ativo];
         await BD.query(comando, valores);
 
         return res.status(200).json('Usuário atualizado com sucesso!');
     }catch(error){
+        if (error.code === '23505') {
+            return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
+        }
         console.error('Erro ao atualizar usuários', error.message);
         return  res.status(500).json({error: 'Erro ao atualizar usuários. Verifique se todos os campos estão preenchidos corretamente' + error.message})
     }

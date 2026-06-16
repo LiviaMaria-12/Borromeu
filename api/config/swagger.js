@@ -1,7 +1,7 @@
 const documentacao = {
     openapi: '3.0.3',
     info: {
-        title: 'API Borromeu',
+        title: 'API Borromeu ⛪',
         description: 'Documentação da API do sistema Borromeo que gerencia usuários, atividades, inscrições e documentos.',
         version: '1.0.0'
     },
@@ -13,7 +13,10 @@ const documentacao = {
         { name: 'Usuários', description: 'Operações relacionadas aos usuários' },
         { name: 'Atividades', description: 'Operações relacionadas as atividades' },
         { name: 'Inscrições', description: 'Operações relacionadas as inscrições' },
-        { name: 'Documentos', description: 'Operações relacionadas aos documentos' }
+        { name: 'Documentos', description: 'Operações relacionadas aos documentos' },
+        { name: 'Orações', description: 'Operações relacionadas as orações' },
+        { name: 'Dashboard', description: 'Obtém os dados consolidados da paróquia' },
+        { name: 'Autenticação', description: 'Operações relacionadas à autenticação e login' }
     ],
     paths: {
         "/usuarios": {
@@ -36,8 +39,13 @@ const documentacao = {
                                 }
                             }
                         }
+                    },
+
+                    500: {
+                        description: "Erro interno no servidor"
                     }
                 }
+
             },
             post: {
                 tags: ['Usuários'],
@@ -61,6 +69,16 @@ const documentacao = {
                 responses: {
                     201: {
                         description: "Usuário cadastrado com sucesso!"
+                    },
+                    404: {
+                        description: "Usuário não encontrado",
+                        content: {
+                            "application/json": {
+                                example: { message: "Usuário não encontrado" }
+                            }
+
+                        }
+
                     },
                     500: {
                         description: "Erro interno no servidor"
@@ -220,7 +238,11 @@ const documentacao = {
                                 }
                             }
                         }
+                    },
+                    500: {
+                        description: "Erro interno no servidor"
                     }
+
                 }
             },
             post: {
@@ -245,6 +267,14 @@ const documentacao = {
                 responses: {
                     201: {
                         description: "Atividade cadastrada com sucesso!"
+                    },
+                    404: {
+                        description: "Usuário não encontrado",
+                        content: {
+                            "application/json": {
+                                example: { message: "Usuário não encontrado" }
+                            }
+                        }
                     },
                     500: {
                         description: "Erro interno no servidor"
@@ -374,8 +404,13 @@ const documentacao = {
                                 }
                             }
                         }
+                    },
+
+                    500: {
+                        description: "Erro interno no servidor"
                     }
                 }
+
             },
             post: {
                 tags: ['Inscrições'],
@@ -434,13 +469,13 @@ const documentacao = {
                         "application/json": {
                             schema: { $ref: "#/components/schemas/Atualizar_Inscricao" },
                             example: {
-                                nome: "Carol" ,
-                                endereco: "Bairro São Sebastião,Rua da Salvação, 2333" ,
+                                nome: "Carol",
+                                endereco: "Bairro São Sebastião,Rua da Salvação, 2333",
                                 data_nascimento: "2000-10-02",
-                                estado_civil:"Solteira" ,
-                                CPF: "111.111.111-00" ,
-                                RG: "11.999.999-00" ,
-                                id_evento_curso: 1 
+                                estado_civil: "Solteira",
+                                CPF: "111.111.111-00",
+                                RG: "11.999.999-00",
+                                id_evento_curso: 1
                             }
                         }
                     }
@@ -525,7 +560,12 @@ const documentacao = {
                                 }
                             }
                         }
-                    }
+                    },
+                    500: {
+                        description: "Erro interno no servidor"
+                    },
+
+
                 }
             },
             post: {
@@ -550,6 +590,14 @@ const documentacao = {
                 responses: {
                     201: {
                         description: "Documento cadastrado com sucesso!"
+                    },
+                    404: {
+                        description: "Usuário não encontrado",
+                        content: {
+                            "application/json": {
+                                example: { message: "Usuário não encontrado" }
+                            }
+                        }
                     },
                     500: {
                         description: "Erro interno no servidor"
@@ -651,6 +699,159 @@ const documentacao = {
                 }
             },
         },
+
+        "/oracoes": {
+            get: {
+                tags: ["Orações"],
+                summary: "Listar todas as orações",
+                security: [
+                    {
+                        bearerAuth: []
+                    }
+                ],
+                responses: {
+                    200: {
+                        description: "Dados obtidos com sucesso!",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "array",
+                                    items: { $ref: '#/components/schemas/Listar_Oracoes' }
+                                }
+                            }
+                        }
+                    },
+                    404: {
+                        description: "Lista não encontrada",
+                        content: {
+                            "application/json": {
+                                example: { message: "Lista não encontrada" }
+                            }
+                        }
+                    },
+                    500: {
+                        description: "Erro interno no servidor"
+                    },
+
+
+                }
+            },
+            post: {
+                tags: ['Orações'],
+                summary: 'Cadastrar novo Oração',
+                description: "Recebe remetente e assunto para cadastrar novo documento",
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/Cadastrar_Oracao"
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    201: {
+                        description: "Oracao cadastrado com sucesso!"
+                    },
+                    404: {
+                        description: "Usuário não encontrado",
+                        content: {
+                            "application/json": {
+                                example: { message: "Usuário não encontrado" }
+                            }
+                        }
+                    },
+                    500: {
+                        description: "Erro interno no servidor"
+                    }
+                }
+            }
+        },
+        "/oracoes/{id_oracao}": {
+            delete: {
+                tags: ['Orações'],
+                summary: 'Remover Oração',
+                security: [
+                    {
+                        bearerAuth: []
+                    }
+                ],
+                description: 'Remove oração existente pelo ID',
+                parameters: [
+                    {
+                        name: "id_oracao",
+                        in: "path",
+                        required: true,
+                        description: "ID da oração a ser removida",
+                        schema: {
+                            type: 'integer',
+                            example: 1
+                        }
+                    }
+                ],
+                responses: {
+                    200: {
+                        description: "Oração removida com sucesso!"
+                    },
+                    404: {
+                        description: "Oração não encontrada",
+                        content: {
+                            "application/json": {
+                                example: { message: "Oração não encontrada" }
+                            }
+                        }
+                    },
+                    500: {
+                        description: "Erro interno no servidor"
+                    }
+
+                }
+            },
+        },
+
+        "/dashboard": {
+            get: {
+                tags: ["Dashboard"],
+                summary: "Obtém os dados consolidados do Dashboard da Paróquia",
+                description: "Retorna o total geral de inscrições realizadas no sistema e o calendário dinâmico de eventos/cursos que começam dentro do mês atual.",
+                "security": [{ "bearerAuth": [] }],
+                responses: {
+                    200: {
+                        description: "Dados obtidos com sucesso!",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "object",
+                                    properties: {
+                                        "totalInscricoes": { type: "integer", example: 142 },
+                                        "calendario": {
+                                            type: "object",
+                                            description: "Objeto onde cada chave representa o dia do mês atual que possui atividades.",
+                                            example: {
+                                                type: "array",
+                                                items: {
+                                                    type: "object",
+                                                    properties: {
+                                                        id: { type: "integer", example: 5 },
+                                                        nome: { type: "string", example: "Catequese de Adultos - Início" },
+                                                        tipo: { type: "string", example: "Curso" },
+                                                        data: { type: "string", example: "16/06/2026" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    500: {
+                        description: "Erro interno no servidor ao processar as consultas."
+                    }
+                }
+            }
+        }
 
 
     },
@@ -783,7 +984,7 @@ const documentacao = {
                 properties: {
                     nome: { type: "string", example: "Carol" },
                     endereco: { type: "string", example: "Bairro São Sebastião,Rua da Salvação, 2333" },
-                    data_nascimento: { type: "string", example: "2000/10/20" },
+                    data_nascimento: { type: "string", example: "2000-10-20" },
                     estado_civil: { type: "string", example: "Solteira" },
                     CPF: { type: "string", example: "111.111.111-00" },
                     RG: { type: "string", example: "11.999.999-00" },
@@ -828,6 +1029,22 @@ const documentacao = {
                     caminho: { type: "string", example: "link_documento" },
                     tipo: { type: "string", example: "CPF" },
                     id_inscricao: { type: "integer", example: 1 }
+                }
+            },
+            Listar_Oracoes: {
+                type: 'object',
+                properties: {
+                    id_oracao: { type: "integer", example: 1 },
+                    remetente: { type: "string", example: "Carol" },
+                    assunto: { type: "string", example: "Pedido para minha sobrinha que esta doente" }
+                }
+            },
+            Cadastrar_Oracao: {
+                type: 'object',
+                required: ["remetente", "assunto"],
+                properties: {
+                    remetente: { type: "string", example: "Carol" },
+                    assunto: { type: "string", example: "Pedido para minha sobrinha que esta doente" }
                 }
             },
         }

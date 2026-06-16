@@ -4,6 +4,8 @@ import rotasUsuarios from './src/routes/rotasUsuarios.js';
 import rotasEventosCursos from './src/routes/rotasEventosCursos.js';
 import rotasDocumentos from './src/routes/rotasDocumentos.js';
 import rotasInscricoes from './src/routes/rotasInscricoes.js';
+import rotasOracoes from './src/routes/rotasOracoes.js';
+import rotasDashboard from './src/routes/rotasDashboard.js';
 
 //usando swagger
 import swaggerUi from 'swagger-ui-express';
@@ -18,7 +20,7 @@ app.use(cors())
 app.get('/swagger', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html><head>
-    <title>API FinanControl</title>
+    <title>API Borromeu ⛪</title>
     <meta charset="utf-8"/>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
 </head><body>
@@ -48,6 +50,8 @@ app.use(rotasUsuarios);
 app.use(rotasEventosCursos);
 app.use(rotasInscricoes);
 app.use(rotasDocumentos);
+app.use(rotasDashboard);
+app.use(rotasOracoes);
 
 const porta = 3000;
 app.listen(porta, () =>{

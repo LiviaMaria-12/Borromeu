@@ -5,6 +5,24 @@ import { autenticarToken } from "../middlewares/autenticacao.js";
 const SECRET_KEY = 'sua_chave_secreta'
 const router = Router();
 
+// Função para garantir que nenhum campo obrigatório foi omitido ou enviado vazio - POST PUT
+function validarCamposObrigatorios(corpoRequisicao, camposEsperados) {
+    for (const campo of camposEsperados) {
+        const valor = corpoRequisicao[campo];
+
+        // 1. Verifica se o campo foi omitido (undefined) ou é nulo (null)
+        if (valor === undefined || valor === null) {
+            return false;
+        }
+
+        // 2. Se for uma string, remove os espaços e checa se ficou vazia
+        if (typeof valor === 'string' && valor.trim() === '') {
+            return false;
+        }
+    }
+    return true; // Todos os campos estão presentes e preenchidos
+}
+
 // GET
 router.get('/eventosCursos', autenticarToken, async (req, res) => {
     try {
@@ -19,7 +37,37 @@ router.get('/eventosCursos', autenticarToken, async (req, res) => {
 
 // POST
 router.post('/eventosCursos', autenticarToken, async (req, res) => {
+    const camposObrigatorios = ['nome', 'descricao', 'data_hora_inicio', 'data_hora_fim', 'necessita_inscricao', 'banner', 'local', 'tipo', 'ativo'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao cadastrar: todos os dados necessários devem ser preenchidos.' });
+    }
+
     const { nome, descricao, data_hora_inicio, data_hora_fim, necessita_inscricao, banner, local, tipo, ativo } = req.body;
+
+    if (typeof ativo !== "boolean") {
+        return res.status(400).json({ erro: "O campo 'ativo' deve ser true ou false." });
+    }
+
+    const milissegundosInicio = Date.parse(data_hora_inicio);
+    const milissegundosFim = Date.parse(data_hora_fim);
+
+    if (isNaN(milissegundosInicio) || !data_hora_inicio.toString().includes(':')) {
+        return res.status(400).json({ 
+            error: 'Erro no campo data_hora_inicio! Você precisa fornecer uma data válida acompanhada do horário (Ex: YYYY-MM-DD HH:MM:SS ou YYYY-MM-DD`T`HH:MM:SS).' 
+        });
+    }
+
+    if (isNaN(milissegundosFim) || !data_hora_fim.toString().includes(':')) {
+        return res.status(400).json({ 
+            error: 'Erro no campo data_hora_fim! Você precisa fornecer uma data válida acompanhada do horário (Ex: YYYY-MM-DD HH:MM).' 
+        });
+    }
+
+    if (!isNaN(Date.parse(data_hora_inicio)) && !isNaN(Date.parse(data_hora_fim))) {
+        if (new Date(data_hora_fim) < new Date(data_hora_inicio)) {
+            erros.push("A 'data_hora_fim' não pode ser anterior à 'data_hora_inicio'.");
+        }
+    }
     try {
         const comando = `INSERT INTO eventos_cursos (nome, descricao, data_hora_inicio, data_hora_fim, necessita_inscricao, banner, local, tipo, ativo) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
@@ -35,8 +83,39 @@ router.post('/eventosCursos', autenticarToken, async (req, res) => {
 
 // PUT
 router.put('/eventosCursos/:id_evento_curso', autenticarToken, async (req, res) => {
+    const camposObrigatorios = ['nome', 'descricao', 'data_hora_inicio', 'data_hora_fim', 'necessita_inscricao', 'banner', 'local', 'tipo', 'ativo'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao atualizar: todos os dados necessários devem ser preenchidos.' });
+    }
+
     const { id_evento_curso } = req.params;
     const { nome, descricao, data_hora_inicio, data_hora_fim, necessita_inscricao, banner, local, tipo, ativo } = req.body;
+
+    if (typeof ativo !== "boolean") {
+        return res.status(400).json({ erro: "O campo 'ativo' deve ser true ou false." });
+    }
+ 
+
+    const milissegundosInicio = Date.parse(data_hora_inicio);
+    const milissegundosFim = Date.parse(data_hora_fim);
+
+    if (isNaN(milissegundosInicio) || !data_hora_inicio.toString().includes(':')) {
+        return res.status(400).json({ 
+            error: 'Erro no campo data_hora_inicio! Você precisa fornecer uma data válida acompanhada do horário (Ex: YYYY-MM-DD HH:MM).' 
+        });
+    }
+
+    if (isNaN(milissegundosFim) || !data_hora_fim.toString().includes(':')) {
+        return res.status(400).json({ 
+            error: 'Erro no campo data_hora_fim! Você precisa fornecer uma data válida acompanhada do horário (Ex: YYYY-MM-DD HH:MM).' 
+        });
+    }
+
+    if (!isNaN(Date.parse(data_hora_inicio)) && !isNaN(Date.parse(data_hora_fim))) {
+        if (new Date(data_hora_fim) < new Date(data_hora_inicio)) {
+            erros.push("A 'data_hora_fim' não pode ser anterior à 'data_hora_inicio'.");
+        }
+    }
     try {
         // Verificar se a categoria existe
         const verificarEventoCurso = await BD.query(

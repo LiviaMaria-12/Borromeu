@@ -5,6 +5,24 @@ import { autenticarToken } from "../middlewares/autenticacao.js";
 const SECRET_KEY = 'sua_chave_secreta'
 const router = Router();
 
+// Função para garantir que nenhum campo obrigatório foi omitido ou enviado vazio - POST PUT
+function validarCamposObrigatorios(corpoRequisicao, camposEsperados) {
+    for (const campo of camposEsperados) {
+        const valor = corpoRequisicao[campo];
+
+        // 1. Verifica se o campo foi omitido (undefined) ou é nulo (null)
+        if (valor === undefined || valor === null) {
+            return false;
+        }
+
+        // 2. Se for uma string, remove os espaços e checa se ficou vazia
+        if (typeof valor === 'string' && valor.trim() === '') {
+            return false;
+        }
+    }
+    return true; // Todos os campos estão presentes e preenchidos
+}
+
 // GET
 router.get('/inscricoes', autenticarToken, async (req, res) => {
     try {
@@ -18,8 +36,17 @@ router.get('/inscricoes', autenticarToken, async (req, res) => {
 });
 
 // POST
-router.post('/inscricoes', autenticarToken, async (req, res) => {
+router.post('/inscricoes', autenticarToken, async (req, res) => {const camposObrigatorios = ['nome', 'endereco', 'data_nascimento', 'estado_civil', 'CPF', 'RG', 'id_evento_curso'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao cadastrar: todos os dados necessários devem ser preenchidos.' });
+    }
+
     const { nome, endereco, data_nascimento, estado_civil, CPF, RG, id_evento_curso } = req.body;
+
+    const dataValida = /^\d{4}-\d{2}-\d{2}$/.test(data_nascimento) && !isNaN(Date.parse(data_nascimento));
+    if (!dataValida) {
+        return res.status(400).json({ message: 'Data de nascimento inválida ou no formato incorreto. Use AAAA-MM-DD.' });
+    }
     try {
         const comando = `INSERT INTO inscricoes (nome, endereco, data_nascimento, estado_civil, CPF, RG, id_evento_curso) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)`;
@@ -38,8 +65,18 @@ router.post('/inscricoes', autenticarToken, async (req, res) => {
 
 // PUT
 router.put('/inscricoes/:id_inscricao', autenticarToken, async (req, res) => {
+    const camposObrigatorios = ['nome', 'endereco', 'data_nascimento', 'estado_civil', 'CPF', 'RG', 'id_evento_curso'];
+    if (!validarCamposObrigatorios(req.body, camposObrigatorios)) {
+        return res.status(400).json({ error: 'Erro ao atualizar: todos os dados necessários devem ser preenchidos.' });
+    }
+
     const { id_inscricao } = req.params;
     const { nome, endereco, data_nascimento, estado_civil, CPF, RG, id_evento_curso } = req.body;
+    
+    const dataValida = /^\d{4}-\d{2}-\d{2}$/.test(data_nascimento) && !isNaN(Date.parse(data_nascimento));
+    if (!dataValida) {
+        return res.status(400).json({ message: 'Data de nascimento inválida ou no formato incorreto. Use AAAA-MM-DD.' });
+    }
     try {
         const verificarInscricao = await BD.query(
             `SELECT * FROM inscricoes WHERE id_inscricao = $1`,
