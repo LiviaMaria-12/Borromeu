@@ -3,7 +3,7 @@ import { BD } from "../../db.js";
 import { autenticarToken } from "../middlewares/autenticacao.js";
 
 const SECRET_KEY = 'sua_chave_secreta'
-const router = Router();
+const router = Router()
 
 // GET
 router.get('/documentos', autenticarToken, async (req, res) => {
